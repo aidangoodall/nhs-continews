@@ -17,7 +17,7 @@ class DataCollector:
     def __init__(self):
         self.client_id = os.getenv('FITBIT_CLIENT_ID')
         self.client_secret = os.getenv('FITBIT_CLIENT_SECRET')
-        self.redirect_uri = 'https://localhost:8501/'
+        self.redirect_uri = 'https://nhs-continews.streamlit.app/'
         self.token = None
         self.oauth = OAuth2Session(self.client_id, redirect_uri=self.redirect_uri,
                                    scope=["activity", "heartrate", "sleep", "profile"])
