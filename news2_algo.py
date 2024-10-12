@@ -1,4 +1,4 @@
-def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp=None, consciousness=None):
+def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp=None, consciousness=None, on_oxygen=None):
     """
     Calculate the NEWS (National Early Warning Score) based on the available physiological parameters.
     
@@ -9,6 +9,7 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
     - pulse: beats per minute
     - systolic_bp: mmHg (optional)
     - consciousness: 'A' for Alert, 'V' for Voice, 'P' for Pain, 'U' for Unresponsive (optional)
+    - on_oxygen: boolean (optional)
     
     Returns:
     - Tuple: (score, message)
@@ -43,6 +44,7 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
         print(f"Error: Unexpected value for respiration rate: {respiration_rate}")
     
     # Oxygen saturation
+    # TODO: Add on_oxygen as an actual conditional, it's currently possible to pass in a boolean value, but it's not used
     if SpO2_scale1 <= 91:
         score += 3
     elif 92 <= SpO2_scale1 <= 93:
@@ -118,24 +120,28 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
         missing = " and ".join(bp_consciousness_missing)
         message = f"NEWS2 Score is: {score} (excluding {missing})"
 
-    return score, message
+    return score, message, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen
 
 # Example usage
 if __name__ == "__main__":
     # Test with all parameters
-    score, message = calculate_news_score(18, 95, 37.5, 80, 120, 'A')
+    score, message = calculate_news_score(18, 95, 37.5, 80, 120, 'A', False)
     print(message)
 
     # Test without blood pressure
-    score, message = calculate_news_score(18, 99, 37.5, 80, consciousness='A')
+    score, message = calculate_news_score(18, 99, 37.5, 80, consciousness='A', on_oxygen=True)
     print(message)
 
     # Test without consciousness
-    score, message = calculate_news_score(18, 95, 41, 80, systolic_bp=120)
+    score, message = calculate_news_score(18, 95, 41, 80, systolic_bp=120, on_oxygen=False)
     print(message)
 
     # Test without both blood pressure and consciousness
-    score, message = calculate_news_score(11, 95, 37.5, 80)
+    score, message = calculate_news_score(11, 95, 37.5, 80, on_oxygen=True)
+    print(message)
+
+    # Test without oxygen status
+    score, message = calculate_news_score(18, 95, 37.5, 80, systolic_bp=120, consciousness='A')
     print(message)
 
     # Test with missing required parameter
