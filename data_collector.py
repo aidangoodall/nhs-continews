@@ -5,6 +5,7 @@ import requests
 from requests_oauthlib import OAuth2Session
 from dotenv import load_dotenv
 import warnings
+import streamlit as st
 
 # Disable SSL-related warnings
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -16,7 +17,7 @@ class DataCollector:
     def __init__(self):
         self.client_id = os.getenv('FITBIT_CLIENT_ID')
         self.client_secret = os.getenv('FITBIT_CLIENT_SECRET')
-        self.redirect_uri = 'https://localhost/8501'
+        self.redirect_uri = 'https://localhost:8501/'
         self.token = None
         self.oauth = OAuth2Session(self.client_id, redirect_uri=self.redirect_uri,
                                    scope=["activity", "heartrate", "sleep", "profile"])
@@ -24,25 +25,25 @@ class DataCollector:
     def authorize(self):
         try:
             authorization_url, _ = self.oauth.authorization_url('https://www.fitbit.com/oauth2/authorize')
-            print(f'Authorization URL: {authorization_url}')
-            print(f'Client ID: {self.client_id}')
-            print(f'Redirect URI: {self.redirect_uri}')
-            authorization_response = input('Enter the full callback URL: ')
-            
-            self.token = self.oauth.fetch_token('https://api.fitbit.com/oauth2/token',
-                                                authorization_response=authorization_response,
-                                                client_secret=self.client_secret,
-                                                verify=False)
-            return self.token
+            st.write(f'Please visit this URL to authorize the application: {authorization_url}')
+            authorization_response = st.text_input('Enter the full callback URL:')
+            if authorization_response:
+                self.token = self.oauth.fetch_token('https://api.fitbit.com/oauth2/token',
+                                                    authorization_response=authorization_response,
+                                                    client_secret=self.client_secret,
+                                                    verify=False)
+                return self.token
+            else:
+                st.warning("Authorization response not provided.")
+                return None
         except Exception as e:
-            print(f"Error during authorization: {e}")
-            raise
-    
+            st.error(f"Error during authorization: {e}")
+            return None
     
     def get_patient_data(self, patient_id):
-        """Fetch and return the latest health data for a given patient."""
         if not self.token:
-            raise Exception("You need to authorize first. Call authorize() method.")
+            st.error("You need to authorize first. Call authorize() method.")
+            return None
 
         try:
             # Fetch heart rate data
@@ -63,24 +64,20 @@ class DataCollector:
             }
 
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching data: {e}")
+            st.error(f"Error fetching data: {e}")
             return None
         
 
 
 def test_data_collector():
     collector = DataCollector()
-    collector.authorize()
-    data = collector.get_patient_data("TEST001")
-    if data:
-        print("Successfully retrieved data:")
-        print(f"Patient ID: {data['patient_id']}")
-        print(data)
-        print(f"Heart Rate Data Points: {len(data['heart_rate'])}")
-        # print(f"Heart Rate Data Points: {len(data['heart_rate']['activities-heart-intraday']['dataset'])}")
-        print(f"Steps Today: {data['steps']['activities-steps'][0]['value']}")
+    token = collector.authorize()
+    if token:
+        data = collector.get_patient_data("TEST001")
+        return data
     else:
-        print("Failed to retrieve data")
+        st.error("Authorization failed. Unable to fetch data.")
+        return None
 
 if __name__ == "__main__":
-    test_data_collector()
+    print(test_data_collector())
