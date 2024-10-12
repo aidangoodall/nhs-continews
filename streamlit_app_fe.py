@@ -1,5 +1,6 @@
 import streamlit as st
 from data_collector import test_data_collector
+from news2_algo import calculate_news_score
 import json
 from datetime import datetime
 
@@ -74,7 +75,8 @@ def main():
         st.session_state[f"device_{st.session_state.selected_device}_state"]["patient_attached"] = patient_attached
         
         if patient_attached:
-            news_score = 5  # Hardcoded for now, but as an integer
+            # Calculate NEWS score using news2_algo.py
+            news_score, message, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen = calculate_news_score(18, 95, 37.5, 80, systolic_bp=350, consciousness='A', on_oxygen=False)
             
             # Determine color based on NEWS score
             if news_score == 0:
@@ -86,12 +88,18 @@ def main():
             else:  # 7 or more
                 color = "red"
             
-            st.markdown(f"<h3 style='color: {color};'>NEWS Score: {news_score}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='color: {color};'>{message}</h3>", unsafe_allow_html=True)
 
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            st.markdown(f"**Reading taken at:** {current_time}")
-            
-            # Clinical suggestion based on NEWS score
+            last_reading_time = datetime(2024, 10, 12, 21, 41)  # 12 Oct 2024 21:41
+            current_time = datetime.now()
+            time_difference = current_time - last_reading_time
+            hours, remainder = divmod(time_difference.seconds, 3600)
+            minutes = remainder // 60
+
+            st.markdown(f"**Last reading taken at:** {last_reading_time.strftime('%d %b %Y %H:%M')}")
+            st.markdown(f"**Time since last reading:** {hours} hours and {minutes} minutes")
+
+            st.markdown("#### Clinical suggestion based on NEWS score")
             if news_score == 0:
                 monitoring = "Minimum 12 hourly"
                 response = "Continue routine NEWS monitoring"
@@ -105,29 +113,28 @@ def main():
                 monitoring = "Continuous monitoring of vital signs"
                 response = "• Registered nurse to immediately inform the medical team caring for the patient – this should be at least at specialist registrar level \n• Emergency assessment by a team with critical care competencies, including practitioner(s) with advanced airway management skills \n• Consider transfer of care to a level 2 or 3 clinical care facility, ie higher-dependency unit or ICU\n• Clinical care in an environment with monitoring facilities"
 
-            '''
-            TODO:
-            Need to add a fifth condition, regardless of the score, if the patient has a 3 in any of the categories, the following must also be highlighted next to that criteria:
-            • Registered nurse to inform medical team caring for the patient, who will review and decide whether escalation of care is necessary
-            ''' 
+            # TODO:
+            # Need to add a fifth condition, regardless of the score, if the patient has a 3 in any of the categories, the following must also be 
+            # highlighted next to that criteria:
+            # • Registered nurse to inform medical team caring for the patient, who will review and decide whether escalation of care is necessary
 
             st.markdown(f"**Frequency of monitoring:** {monitoring}")
             st.markdown(f"**Clinical response:** {response}")
-            
-            # Create two columns for the vital signs
+
+            st.markdown("#### Vitals readings")
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("**Respiratory Rate:** 22 breaths/min")
-                st.markdown("**Oxygen Saturation:** 95%")
-                st.markdown("**Systolic Blood Pressure:** 110 mmHg")
+                st.markdown(f"**Respiratory Rate:** {respiration_rate} breaths/min")
+                st.markdown(f"**Oxygen Saturation:** {SpO2_scale1}%")
+                st.markdown(f"**Systolic Blood Pressure:** {systolic_bp} mmHg")
             
             with col2:
-                st.markdown("**Pulse:** 102 bpm")
-                st.markdown("**Temperature:** 38.1°C")
-                st.markdown("**Consciousness Level:** Alert")
+                st.markdown(f"**Pulse:** {pulse} bpm")
+                st.markdown(f"**Temperature:** {temperature}°C")
+                st.markdown(f"**Consciousness Level:** {consciousness}")
             
-            st.markdown("**Supplemental Oxygen:** No")
+            st.markdown(f"**Supplemental Oxygen:** {'Yes' if on_oxygen else 'No'}")
 
         # Placeholder for future device data display
         st.empty()
