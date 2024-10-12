@@ -28,8 +28,12 @@ def main():
         if patient_attached:
             if st.button("Fetch data and calculate NEWS"):
                 # Calculate NEWS score using news2_algo.py
-                news_score, message, param_received_3, params_with_3_points, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen = calculate_news_score(18, 95, 43, 80)
+                # news_score, message, param_received_3, params_with_3_points, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen = calculate_news_score(18, 95, 43, 80)
+                news_score, message, param_received_3, params_with_3_points, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen = calculate_news_score(18, 95, 34.9, 80, systolic_bp=350, consciousness='A', on_oxygen=False)
                 
+                
+
+
                 # Update the NEWS score in the device state
                 st.session_state[f"device_{st.session_state.selected_device}_state"]["news_score"] = news_score
                 

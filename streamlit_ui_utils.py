@@ -69,6 +69,13 @@ def display_news_score_and_suggestions(news_score, message, param_received_3, pa
     st.markdown(f"**Frequency of monitoring:** {monitoring}")
     st.markdown(f"**Clinical response:** {response}")
 
+    if param_received_3:
+        st.markdown("#### ⚠️ Critical Alert - parameters with a score of 3:")
+        for param in params_with_3_points:
+            st.markdown(f"- {param.replace('_', ' ').title()}")
+        st.markdown("**Clinical Response:** Registered nurse to inform medical team caring for the patient, who will review and decide whether escalation of care is necessary.")
+
+
     st.markdown("#### Vitals readings")
     col1, col2 = st.columns(2)
 
@@ -83,10 +90,3 @@ def display_news_score_and_suggestions(news_score, message, param_received_3, pa
         st.markdown(f"**Consciousness Level:** {consciousness if consciousness is not None else 'Unknown'}" + (" 🚨" if "consciousness" in params_with_3_points else ""))
 
     st.markdown(f"**Supplemental Oxygen:** {'Yes' if on_oxygen else 'No' if on_oxygen is not None else 'Unknown'}")
-
-    if param_received_3:
-        st.markdown("### ⚠️ Critical Alert")
-        st.markdown("The following parameters received a score of 3:")
-        for param in params_with_3_points:
-            st.markdown(f"- {param.replace('_', ' ').title()}")
-        st.markdown("**Clinical Response:** Registered nurse to inform medical team caring for the patient, who will review and decide whether escalation of care is necessary.")
