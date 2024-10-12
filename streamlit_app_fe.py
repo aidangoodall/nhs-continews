@@ -4,39 +4,9 @@ from news2_algo import calculate_news_score
 import json
 from datetime import datetime
 
-# Set page configuration
-st.set_page_config(page_title="NEWS2 Score Calculator", page_icon="🏥")
-
-# Add this CSS to your app
-st.markdown("""
-<style>
-.device-indicator {
-    width: 100%;
-    padding: 10px;
-    margin: 5px;
-    border-radius: 5px;
-    text-align: center;
-    cursor: pointer;
-}
-.device-indicator:hover {
-    opacity: 0.8;
-}
-.no-patient {
-    background-color: #808080;
-    color: white;
-}
-.patient-present {
-    background-color: #9be1fa;
-    color: white;
-}
-.news-score-green { color: #00FF00; }
-.news-score-gray { color: #808080; }
-.news-score-orange { color: #fcb51c; }
-.news-score-red { color: #FF0000; }
-</style>
-""", unsafe_allow_html=True)
-
 def main():
+    # Set page title
+    st.set_page_config(page_title="NEWS2 Score Calculator", page_icon="🏥")
     # Add a title
     st.title("Welcome to the NEWS2 Score Calculator")
     # Add some information about NEWS2
@@ -75,64 +45,21 @@ def main():
     # New section for device boxes
     st.header("Devices")
 
-    # Create a 4x5 grid layout for 20 devices
+    # Create a 4x5 grid layout for 4 devices
     cols = st.columns(4)
     for i in range(4):
         device_id = f"DEVICE{i+1:03d}"
         
         # Initialize device state in session_state if not present
         if f"device_{device_id}_state" not in st.session_state:
-            st.session_state[f"device_{device_id}_state"] = {"patient_attached": False, "news_score": 0}
+            st.session_state[f"device_{device_id}_state"] = {"patient_attached": False}
         
         with cols[i % 4]:
-            # Create a container for the device indicator
-            device_container = st.container()
-            
-            # Determine the device state and appearance
-            if st.session_state[f"device_{device_id}_state"]["patient_attached"]:
-                # Calculate NEWS score here
-                # For now, let's use dummy values. In a real scenario, you'd fetch actual patient data.
-                news_score, message, param_received_3, params_with_3_points, *_ = calculate_news_score(
-                    respiration_rate=18, 
-                    SpO2_scale1=95, 
-                    temperature=43, 
-                    pulse=80, 
-                    systolic_bp=250, 
-                    consciousness='A', 
-                    on_oxygen=False
-                )
-                
-                # Update the NEWS score in the session state
-                st.session_state[f"device_{device_id}_state"]["news_score"] = news_score
-                
-                if news_score == 0:
-                    score_color = "green"
-                elif 1 <= news_score <= 4:
-                    score_color = "gray"
-                elif news_score == 5 or news_score == 6:
-                    score_color = "orange"
-                else:  # 7 or more
-                    score_color = "red"
-                
-                device_html = f"""
-                <div class="device-indicator patient-present">
-                    Device {i+1}<br>
-                    <span class="news-score-{score_color}">NEWS: {news_score}</span>
-                </div>
-                """
-            else:
-                device_html = f"""
-                <div class="device-indicator no-patient">
-                    Device {i+1}<br>
-                    <span>No Patient</span>
-                </div>
-                """
-            
-            # Render the device indicator
-            device_container.markdown(device_html, unsafe_allow_html=True)
-            
-            # Make the container clickable
-            if device_container.button("Open", key=f"device_button_{i}", help="Click to view device details"):
+            # Change button color based on patient attachment status
+            button_color = "green" if st.session_state[f"device_{device_id}_state"]["patient_attached"] else "gray"
+            if st.button(f"Device {i+1}", key=f"device_button_{i}", 
+                         help="Click to view device details",
+                         type="primary" if button_color == "green" else "secondary"):
                 st.session_state.selected_device = device_id
 
     # Display details for the selected device
@@ -170,7 +97,7 @@ def main():
             minutes = remainder // 60
 
             st.markdown(f"**Last reading taken at:** {last_reading_time.strftime('%d %b %Y %H:%M')}")
-            st.markdown(f"**Time since last reading:** {hours} hours and {minutes} minutes") #TODO: add alerting depending on time since last reading
+            st.markdown(f"**Time since last reading:** {hours} hours and {minutes} minutes")
 
             st.markdown("#### Clinical suggestion based on NEWS score")
             if news_score == 0:
