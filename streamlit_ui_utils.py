@@ -12,11 +12,17 @@ def render_devices():
         device_id = f"Device{i+1}"
 
         if f"device_{device_id}_state" not in st.session_state:
-            st.session_state[f"device_{device_id}_state"] = {"patient_attached": False}
+            st.session_state[f"device_{device_id}_state"] = {"patient_attached": False, "news_score": None}
 
         with cols[i % 4]:
             button_color = "green" if st.session_state[f"device_{device_id}_state"]["patient_attached"] else "gray"
-            if st.button(f"Device {i+1}", key=f"device_button_{i}",
+            news_score = st.session_state[f"device_{device_id}_state"].get("news_score")
+            
+            button_label = f"Device {i+1}"
+            if news_score is not None:
+                button_label += f" (NEWS: {news_score})"
+            
+            if st.button(button_label, key=f"device_button_{i}",
                          help="Click to view device details",
                          type="primary" if button_color == "green" else "secondary"):
                 st.session_state.selected_device = device_id
@@ -69,14 +75,14 @@ def display_news_score_and_suggestions(news_score, message, param_received_3, pa
     with col1:
         st.markdown(f"**Respiratory Rate:** {respiration_rate} breaths/min" + (" 🚨" if "respiration_rate" in params_with_3_points else ""))
         st.markdown(f"**Oxygen Saturation:** {SpO2_scale1}%" + (" 🚨" if "SpO2" in params_with_3_points else ""))
-        st.markdown(f"**Systolic Blood Pressure:** {systolic_bp} mmHg" + (" 🚨" if "systolic_bp" in params_with_3_points else ""))
+        st.markdown(f"**Systolic Blood Pressure:** {systolic_bp if systolic_bp is not None else 'Unknown'} {'mmHg' if systolic_bp is not None else ''}" + (" 🚨" if "systolic_bp" in params_with_3_points else ""))
 
     with col2:
         st.markdown(f"**Pulse:** {pulse} bpm" + (" 🚨" if "pulse" in params_with_3_points else ""))
-        st.markdown(f"**Temperature:** {temperature}°C" + ("" if "temperature" in params_with_3_points else ""))
-        st.markdown(f"**Consciousness Level:** {consciousness}" + (" 🚨" if "consciousness" in params_with_3_points else ""))
+        st.markdown(f"**Temperature:** {temperature}°C" + (" 🚨" if "temperature" in params_with_3_points else ""))
+        st.markdown(f"**Consciousness Level:** {consciousness if consciousness is not None else 'Unknown'}" + (" 🚨" if "consciousness" in params_with_3_points else ""))
 
-    st.markdown(f"**Supplemental Oxygen:** {'Yes' if on_oxygen else 'No'}")
+    st.markdown(f"**Supplemental Oxygen:** {'Yes' if on_oxygen else 'No' if on_oxygen is not None else 'Unknown'}")
 
     if param_received_3:
         st.markdown("### ⚠️ Critical Alert")
