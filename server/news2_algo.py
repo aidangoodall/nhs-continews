@@ -1,35 +1,35 @@
-def calculate_news_score(respiration_rate, SpO2_scale1, temperature, systolic_bp, pulse, consciousness):
+def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp=None, consciousness=None):
     """
-    Calculate the NEWS (National Early Warning Score) based on the six key physiological parameters.
+    Calculate the NEWS (National Early Warning Score) based on the available physiological parameters.
     
     Parameters:
     - respiration_rate: breaths per minute
     - SpO2_scale1: percentage (%)
     - temperature: degrees Celsius
-    - systolic_bp: mmHg
     - pulse: beats per minute
-    - consciousness: 'A' for Alert, 'V' for Voice, 'P' for Pain, 'U' for Unresponsive
+    - systolic_bp: mmHg (optional)
+    - consciousness: 'A' for Alert, 'V' for Voice, 'P' for Pain, 'U' for Unresponsive (optional)
     
     Returns:
-    - NEWS score (integer)
+    - Tuple: (score, message)
     """
+    required_params = [respiration_rate, SpO2_scale1, temperature, pulse]
+    if any(param is None for param in required_params):
+        return None, "Missing too many parameters, couldn't calculate NEWS score"
 
-    # Error checking
+    # Error checking for required parameters
     if not isinstance(respiration_rate, (int, float)) or respiration_rate < 0:
         raise ValueError("Respiration rate must be a non-negative number")
     if not isinstance(SpO2_scale1, (int, float)) or not 0 <= SpO2_scale1 <= 100:
         raise ValueError("SpO2 must be a number between 0 and 100")
     if not isinstance(temperature, (int, float)):
         raise ValueError("Temperature must be a number")
-    if not isinstance(systolic_bp, (int, float)) or systolic_bp < 0:
-        raise ValueError("Systolic blood pressure must be a non-negative number")
     if not isinstance(pulse, (int, float)) or pulse < 0:
         raise ValueError("Pulse must be a non-negative number")
-    if not isinstance(consciousness, str) or consciousness.upper() not in ['A', 'V', 'P', 'U']:
-        raise ValueError("Consciousness must be 'A', 'V', 'P', or 'U'")
 
     score = 0
     
+    # Scoring logic for required parameters
     # Respiratory rate
     if respiration_rate <= 8 or respiration_rate >= 25:
         score += 3
@@ -68,18 +68,6 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, systolic_bp
     else:
         print(f"Error: Unexpected value for temperature: {temperature}")
     
-    # Systolic blood pressure
-    if systolic_bp <= 90 or systolic_bp >= 220:
-        score += 3
-    elif 91 <= systolic_bp <= 100:
-        score += 2
-    elif 101 <= systolic_bp <= 110:
-        score += 1
-    elif 111 <= systolic_bp <= 219:
-        score += 0
-    else:
-        print(f"Error: Unexpected value for systolic blood pressure: {systolic_bp}")
-    
     # Pulse
     if pulse <= 40 or pulse >= 131:
         score += 3
@@ -91,25 +79,65 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, systolic_bp
         score += 0
     else:
         print(f"Error: Unexpected value for pulse: {pulse}")
-    
-    # Consciousness
-    if consciousness.upper() == 'A':
-        score += 0
-    elif consciousness.upper() in ['C', 'V', 'P', 'U']:
-        score += 3
+
+    # Systolic blood pressure (optional)
+    bp_consciousness_missing = []
+    if systolic_bp is not None:
+        if not isinstance(systolic_bp, (int, float)) or systolic_bp < 0:
+            raise ValueError("Systolic blood pressure must be a non-negative number")
+        if systolic_bp <= 90 or systolic_bp >= 220:
+            score += 3
+        elif 91 <= systolic_bp <= 100:
+            score += 2
+        elif 101 <= systolic_bp <= 110:
+            score += 1
+        elif 111 <= systolic_bp <= 219:
+            score += 0
+        else:
+            print(f"Error: Unexpected value for systolic blood pressure: {systolic_bp}")
     else:
-        print(f"Error: Unexpected value for consciousness: {consciousness}")
-    
-    return score
+        bp_consciousness_missing.append("bp")
+
+    # Consciousness (optional)
+    if consciousness is not None:
+        if not isinstance(consciousness, str) or consciousness.upper() not in ['A', 'V', 'P', 'U']:
+            raise ValueError("Consciousness must be 'A', 'V', 'P', or 'U'")
+        if consciousness.upper() == 'A':
+            score += 0
+        elif consciousness.upper() in ['V', 'P', 'U']:
+            score += 3
+        else:
+            print(f"Error: Unexpected value for consciousness: {consciousness}")
+    else:
+        bp_consciousness_missing.append("consciousness")
+
+    # Prepare the result message
+    if not bp_consciousness_missing:
+        message = f"NEWS2 Score is: {score}"
+    else:
+        missing = " and ".join(bp_consciousness_missing)
+        message = f"NEWS2 Score is: {score} (excluding {missing})"
+
+    return score, message
 
 # Example usage
 if __name__ == "__main__":
-    news_score = calculate_news_score(
-        respiration_rate=18,
-        SpO2_scale1=95,
-        temperature=37.5,
-        systolic_bp=499,
-        pulse=80,
-        consciousness='A'
-    )
-    print(f"NEWS Score: {news_score}")
+    # Test with all parameters
+    score, message = calculate_news_score(18, 95, 37.5, 80, 120, 'A')
+    print(message)
+
+    # Test without blood pressure
+    score, message = calculate_news_score(18, 99, 37.5, 80, consciousness='A')
+    print(message)
+
+    # Test without consciousness
+    score, message = calculate_news_score(18, 95, 41, 80, systolic_bp=120)
+    print(message)
+
+    # Test without both blood pressure and consciousness
+    score, message = calculate_news_score(11, 95, 37.5, 80)
+    print(message)
+
+    # Test with missing required parameter
+    score, message = calculate_news_score(None, 95, 37.5, 80)
+    print(message)
