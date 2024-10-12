@@ -30,8 +30,8 @@ class DataCollector:
             if authorization_response:
                 self.token = self.oauth.fetch_token('https://api.fitbit.com/oauth2/token',
                                                     authorization_response=authorization_response,
-                                                    client_secret=self.client_secret,
-                                                    verify=False)
+                                                    client_secret=self.client_secret
+                                                    )
                 return self.token
             else:
                 st.warning("Authorization response not provided.")
