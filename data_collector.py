@@ -18,43 +18,45 @@ class DataCollector:
         self.client_id = os.getenv('FITBIT_CLIENT_ID')
         self.client_secret = os.getenv('FITBIT_CLIENT_SECRET')
         self.redirect_uri = 'https://nhs-continews.streamlit.app/'
-        self.token = None
-        self.oauth = OAuth2Session(self.client_id, redirect_uri=self.redirect_uri,
-                                   scope=["activity", "heartrate", "sleep", "profile"])
+        self.token_url = 'https://api.fitbit.com/oauth2/token'
+        self.scope = ["activity", "heartrate", "sleep", "profile"]
+        self.oauth = OAuth2Session(self.client_id, redirect_uri=self.redirect_uri, scope=self.scope)
 
     def authorize(self):
-        try:
-            authorization_url, _ = self.oauth.authorization_url('https://www.fitbit.com/oauth2/authorize')
-            st.write(f'Please visit this URL to authorize the application: {authorization_url}')
-            authorization_response = st.text_input('Enter the full callback URL:')
-            if authorization_response:
-                self.token = self.oauth.fetch_token('https://api.fitbit.com/oauth2/token',
-                                                    authorization_response=authorization_response,
-                                                    client_secret=self.client_secret,
-                                                    verify=False)
-                return self.token
+        if 'fitbit_token' not in st.session_state:
+            if 'code' not in st.experimental_get_query_params():
+                authorization_url, _ = self.oauth.authorization_url('https://www.fitbit.com/oauth2/authorize')
+                st.markdown(f'[Click here to authorize]({authorization_url})')
+                st.stop()
             else:
-                st.warning("Authorization response not provided.")
-                return None
-        except Exception as e:
-            st.error(f"Error during authorization: {e}")
-            return None
+                code = st.experimental_get_query_params()['code'][0]
+                token = self.oauth.fetch_token(
+                    self.token_url,
+                    client_secret=self.client_secret,
+                    code=code
+                )
+                st.session_state.fitbit_token = token
+        return st.session_state.fitbit_token
     
+
     def get_patient_data(self, patient_id):
-        if not self.token:
-            st.error("You need to authorize first. Call authorize() method.")
+        token = self.authorize()
+        if not token:
             return None
 
+        headers = {'Authorization': f'Bearer {token["access_token"]}'}
+
         try:
-            # Fetch heart rate data
+             # Fetch heart rate data
             heart_rate_url = 'https://api.fitbit.com/1/user/-/activities/heart/date/today/1d/1min.json'
-            heart_rate_response = self.oauth.get(heart_rate_url)
+            heart_rate_response = requests.get(heart_rate_url, headers=headers)
             heart_rate_data = heart_rate_response.json()
 
             # Fetch steps data
             steps_url = 'https://api.fitbit.com/1/user/-/activities/steps/date/today/1d.json'
-            steps_response = self.oauth.get(steps_url)
+            steps_response = requests.get(steps_url, headers=headers)
             steps_data = steps_response.json()
+
 
             # Process and return the data
             return {
