@@ -76,7 +76,7 @@ def main():
         
         if patient_attached:
             # Calculate NEWS score using news2_algo.py
-            news_score, message, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen = calculate_news_score(18, 95, 37.5, 80, systolic_bp=350, consciousness='A', on_oxygen=False)
+            news_score, message, param_received_3, params_with_3_points, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen = calculate_news_score(18, 95, 37.5, 80, systolic_bp=350, consciousness='A', on_oxygen=False)
             
             # Determine color based on NEWS score
             if news_score == 0:
@@ -125,16 +125,23 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown(f"**Respiratory Rate:** {respiration_rate} breaths/min")
-                st.markdown(f"**Oxygen Saturation:** {SpO2_scale1}%")
-                st.markdown(f"**Systolic Blood Pressure:** {systolic_bp} mmHg")
+                st.markdown(f"**Respiratory Rate:** {respiration_rate} breaths/min" + (" 🚨" if "respiration_rate" in params_with_3_points else ""))
+                st.markdown(f"**Oxygen Saturation:** {SpO2_scale1}%" + (" 🚨" if "SpO2" in params_with_3_points else ""))
+                st.markdown(f"**Systolic Blood Pressure:** {systolic_bp} mmHg" + (" 🚨" if "systolic_bp" in params_with_3_points else ""))
             
             with col2:
-                st.markdown(f"**Pulse:** {pulse} bpm")
-                st.markdown(f"**Temperature:** {temperature}°C")
-                st.markdown(f"**Consciousness Level:** {consciousness}")
+                st.markdown(f"**Pulse:** {pulse} bpm" + (" 🚨" if "pulse" in params_with_3_points else ""))
+                st.markdown(f"**Temperature:** {temperature}°C" + (" ����" if "temperature" in params_with_3_points else ""))
+                st.markdown(f"**Consciousness Level:** {consciousness}" + (" 🚨" if "consciousness" in params_with_3_points else ""))
             
             st.markdown(f"**Supplemental Oxygen:** {'Yes' if on_oxygen else 'No'}")
+
+            if param_received_3:
+                st.markdown("### ⚠️ Critical Alert")
+                st.markdown("The following parameters received a score of 3:")
+                for param in params_with_3_points:
+                    st.markdown(f"- {param.replace('_', ' ').title()}")
+                st.markdown("**Clinical Response:** Registered nurse to inform medical team caring for the patient, who will review and decide whether escalation of care is necessary.")
 
         # Placeholder for future device data display
         st.empty()

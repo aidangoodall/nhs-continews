@@ -12,7 +12,7 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
     - on_oxygen: boolean (optional)
     
     Returns:
-    - Tuple: (score, message)
+    - Tuple: (score, message, param_received_3, params_with_3_points, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen)
     """
     required_params = [respiration_rate, SpO2_scale1, temperature, pulse]
     if any(param is None for param in required_params):
@@ -29,11 +29,15 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
         raise ValueError("Pulse must be a non-negative number")
 
     score = 0
+    param_received_3 = False
+    params_with_3_points = []
     
     # Scoring logic for required parameters
     # Respiratory rate
     if respiration_rate <= 8 or respiration_rate >= 25:
         score += 3
+        param_received_3 = True
+        params_with_3_points.append("respiration_rate")
     elif 21 <= respiration_rate <= 24:
         score += 2
     elif 9 <= respiration_rate <= 11:
@@ -44,9 +48,10 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
         print(f"Error: Unexpected value for respiration rate: {respiration_rate}")
     
     # Oxygen saturation
-    # TODO: Add on_oxygen as an actual conditional, it's currently possible to pass in a boolean value, but it's not used
     if SpO2_scale1 <= 91:
         score += 3
+        param_received_3 = True
+        params_with_3_points.append("SpO2")
     elif 92 <= SpO2_scale1 <= 93:
         score += 2
     elif 94 <= SpO2_scale1 <= 95:
@@ -59,6 +64,8 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
     # Temperature
     if temperature <= 35.0:
         score += 3
+        param_received_3 = True
+        params_with_3_points.append("temperature")
     elif 35.1 <= temperature <= 36.0:
         score += 1
     elif 36.1 <= temperature <= 38.0:
@@ -73,6 +80,8 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
     # Pulse
     if pulse <= 40 or pulse >= 131:
         score += 3
+        param_received_3 = True
+        params_with_3_points.append("pulse")
     elif 111 <= pulse <= 130:
         score += 2
     elif 41 <= pulse <= 50 or 91 <= pulse <= 110:
@@ -89,6 +98,8 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
             raise ValueError("Systolic blood pressure must be a non-negative number")
         if systolic_bp <= 90 or systolic_bp >= 220:
             score += 3
+            param_received_3 = True
+            params_with_3_points.append("systolic_bp")
         elif 91 <= systolic_bp <= 100:
             score += 2
         elif 101 <= systolic_bp <= 110:
@@ -108,6 +119,8 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
             score += 0
         elif consciousness.upper() in ['V', 'P', 'U']:
             score += 3
+            param_received_3 = True
+            params_with_3_points.append("consciousness")
         else:
             print(f"Error: Unexpected value for consciousness: {consciousness}")
     else:
@@ -120,13 +133,21 @@ def calculate_news_score(respiration_rate, SpO2_scale1, temperature, pulse, syst
         missing = " and ".join(bp_consciousness_missing)
         message = f"NEWS2 Score is: {score} (excluding {missing})"
 
-    return score, message, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen
+    return score, message, param_received_3, params_with_3_points, respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp, consciousness, on_oxygen
 
 # Example usage
 if __name__ == "__main__":
     # Test with all parameters
-    score, message = calculate_news_score(18, 95, 37.5, 80, 120, 'A', False)
+    score, message, param_received_3, params_with_3_points, *_ = calculate_news_score(18, 95, 37.5, 80, 120, 'A', False)
     print(message)
+    print(f"Any parameter received 3 points: {param_received_3}")
+    print(f"Parameters that received 3 points: {params_with_3_points}")
+
+    # Test with high respiration rate
+    score, message, param_received_3, params_with_3_points, *_ = calculate_news_score(26, 95, 37.5, 80, 120, 'A', False)
+    print(message)
+    print(f"Any parameter received 3 points: {param_received_3}")
+    print(f"Parameters that received 3 points: {params_with_3_points}")
 
     # Test without blood pressure
     score, message = calculate_news_score(18, 99, 37.5, 80, consciousness='A', on_oxygen=True)
