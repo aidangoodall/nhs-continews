@@ -77,7 +77,7 @@ def main():
 
     # Create a 4x5 grid layout for 20 devices
     cols = st.columns(4)
-    for i in range(20):
+    for i in range(4):
         device_id = f"DEVICE{i+1:03d}"
         
         # Initialize device state in session_state if not present
