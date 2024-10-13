@@ -3,6 +3,9 @@ from data_collector import test_data_collector
 from news2_algo import calculate_news_score
 import json
 from streamlit_ui_utils import display_news_score_and_suggestions, render_devices
+from demo_data import DEMO_DATA
+import time
+
 
 def main():
     # Set page title
@@ -10,8 +13,35 @@ def main():
     # Add a title
     st.title("What's NEW? A&E NEWS Tracker")
 
+    if 'demo_mode' not in st.session_state:
+        st.session_state.demo_mode = False
+        st.session_state.demo_iteration = 0
+
+    if st.button("Toggle Demo Mode"):
+        st.session_state.demo_mode = not st.session_state.demo_mode
+        st.session_state.demo_iteration = 0
+
+
     # Render devices
     render_devices()
+
+    if st.session_state.demo_mode:
+        st.write(f"Demo Mode Active - Iteration {st.session_state.demo_iteration + 1}/5")
+        for device_index, device_data in enumerate(DEMO_DATA):
+            if st.session_state.demo_iteration < len(device_data):
+                data = device_data[st.session_state.demo_iteration]
+                news_score, message, param_received_3, params_with_3_points, *_ = calculate_news_score(*data)
+                st.session_state[f"device_{device_index}_state"]["news_score"] = news_score
+                st.subheader(f"Device {device_index + 1}")
+                display_news_score_and_suggestions(news_score, message, param_received_3, params_with_3_points, *data)
+
+        # Increment demo iteration and rerun after 30 seconds
+        if st.session_state.demo_iteration < len(DEMO_DATA[0]) - 1:
+            time.sleep(30)
+            st.session_state.demo_iteration += 1
+            st.experimental_rerun()
+        else:
+            st.write("Demo completed. Toggle Demo Mode to restart.")
 
     # Display details for the selected device
     if 'selected_device' in st.session_state:
