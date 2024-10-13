@@ -6,6 +6,14 @@ from streamlit_ui_utils import display_news_score_and_suggestions, render_device
 from demo_data import DEMO_DATA
 import time
 
+def initialize_device_states():
+    for i in range(4):  # Initialize states for 4 devices
+        if f"device_{i}_state" not in st.session_state:
+            st.session_state[f"device_{i}_state"] = {
+                "news_score": 0,
+                "patient_attached": False
+            }
+
 
 def main():
     # Set page title
@@ -20,7 +28,8 @@ def main():
     if st.button("Toggle Demo Mode"):
         st.session_state.demo_mode = not st.session_state.demo_mode
         st.session_state.demo_iteration = 0
-
+  
+    initialize_device_states()
 
     # Render devices
     render_devices()
@@ -32,6 +41,7 @@ def main():
                 data = device_data[st.session_state.demo_iteration]
                 news_score, message, param_received_3, params_with_3_points, *_ = calculate_news_score(*data)
                 st.session_state[f"device_{device_index}_state"]["news_score"] = news_score
+                st.session_state[f"device_{device_index}_state"]["patient_attached"] = True
                 st.subheader(f"Device {device_index + 1}")
                 display_news_score_and_suggestions(news_score, message, param_received_3, params_with_3_points, *data)
 
