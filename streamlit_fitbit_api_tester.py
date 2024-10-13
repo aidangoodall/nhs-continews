@@ -7,6 +7,7 @@ import random
 import string
 from dotenv import load_dotenv
 from urllib.parse import quote, parse_qs, urlparse
+from datetime import date, timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -41,7 +42,7 @@ client_id = os.getenv('FITBIT_CLIENT_ID')
 st.write(f"Client ID: {client_id}")
 
 # Define the scope and URL-encode it
-scope = 'activity heartrate location oxygen_saturation profile'
+scope = 'activity heartrate location oxygen_saturation temperature'
 encoded_scope = quote(scope)
 
 # Request authorization
@@ -92,26 +93,81 @@ if st.button("Exchange Code for Tokens"):
             if response.status_code == 200:
                 tokens = response.json()
                 st.success("Successfully obtained tokens!")
-                st.json(tokens)
                 
                 # Store access token in session state
                 st.session_state.access_token = tokens['access_token']
                 
-                # Example API call to get user profile data
-                user_profile_url = 'https://api.fitbit.com/1/user/-/profile.json'
-                profile_headers = {
-                    'Authorization': f'Bearer {st.session_state.access_token}'
-                }
-                profile_response = requests.get(user_profile_url, headers=profile_headers)
-                
-                if profile_response.status_code == 200:
-                    profile_data = profile_response.json()
-                    st.success("Successfully retrieved user profile data!")
-                    st.json(profile_data)
+                # Function to make authenticated GET requests
+                def authenticated_get(url):
+                    headers = {'Authorization': f'Bearer {st.session_state.access_token}'}
+                    response = requests.get(url, headers=headers)
+                    if response.status_code == 200:
+                        return response.json()
+                    else:
+                        st.error(f"Failed to retrieve data from {url}")
+                        st.write(f"Status Code: {response.status_code}")
+                        st.write(response.text)
+                        return None
+
+                # Get today's date and yesterday's date
+                today = date.today().isoformat()
+                yesterday = (date.today() - timedelta(days=1)).isoformat()
+
+                # Fetch and display temperature data
+                temp_url = f'https://api.fitbit.com/1/user/-/temp/core/date/{yesterday}/{today}.json'
+                temp_data = authenticated_get(temp_url)
+                if temp_data and 'tempCore' in temp_data:
+                    st.subheader("Temperature Data")
+                    for day in temp_data['tempCore']:
+                        st.write(f"Date: {day['dateTime']}, Temperature: {day['value'].get('nightlyRelative', 'N/A')}°C")
                 else:
-                    st.error("Failed to retrieve user profile data.")
-                    st.write(f"Status Code: {profile_response.status_code}")
-                    st.write(profile_response.text)
+                    st.write("No temperature data available")
+
+                # Fetch and display activity data
+                activity_url = f'https://api.fitbit.com/1/user/-/activities/date/{today}.json'
+                activity_data = authenticated_get(activity_url)
+                if activity_data and 'summary' in activity_data:
+                    st.subheader("Activity Data")
+                    summary = activity_data['summary']
+                    st.write(f"Steps: {summary.get('steps', 'N/A')}")
+                    st.write(f"Calories Burned: {summary.get('caloriesOut', 'N/A')}")
+                    st.write(f"Active Minutes: {summary.get('veryActiveMinutes', 'N/A')}")
+
+                # Fetch and display SpO2 data
+                spo2_url = f'https://api.fitbit.com/1/user/-/spo2/date/{yesterday}/{today}.json'
+                spo2_data = authenticated_get(spo2_url)
+                if spo2_data and 'value' in spo2_data:
+                    st.subheader("SpO2 Data")
+                    for day in spo2_data['value']:
+                        st.write(f"Date: {day['dateTime']}, Average: {day['value'].get('avg', 'N/A')}%")
+
+                # Fetch and display breathing rate data
+                breathing_url = f'https://api.fitbit.com/1/user/-/br/date/{yesterday}/{today}.json'
+                breathing_data = authenticated_get(breathing_url)
+                if breathing_data and 'br' in breathing_data:
+                    st.subheader("Breathing Rate Data")
+                    for day in breathing_data['br']:
+                        st.write(f"Date: {day['dateTime']}, Rate: {day['value'].get('breathingRate', 'N/A')} breaths/min")
+
+                # Fetch and display heart rate data
+                heart_rate_url = f'https://api.fitbit.com/1/user/-/activities/heart/date/{today}/1d.json'
+                heart_rate_data = authenticated_get(heart_rate_url)
+                if heart_rate_data and 'activities-heart' in heart_rate_data:
+                    st.subheader("Heart Rate Data")
+                    for day in heart_rate_data['activities-heart']:
+                        if 'value' in day and 'restingHeartRate' in day['value']:
+                            st.write(f"Date: {day['dateTime']}, Resting Heart Rate: {day['value']['restingHeartRate']} bpm")
+
+                # Fetch and display HRV data
+                hrv_url = f'https://api.fitbit.com/1/user/-/hrv/date/{yesterday}/{today}.json'
+                hrv_data = authenticated_get(hrv_url)
+                if hrv_data and 'hrv' in hrv_data:
+                    st.subheader("HRV Data")
+                    for day in hrv_data['hrv']:
+                        st.write(f"Date: {day['dateTime']}, Daily RMSSD: {day['value'].get('dailyRmssd', 'N/A')}")
+                else:
+                    st.write("No HRV data available")
+
             else:
                 st.error(f"Failed to obtain tokens. Status Code: {response.status_code}")
                 st.write(response.text)

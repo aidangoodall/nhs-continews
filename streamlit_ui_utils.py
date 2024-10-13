@@ -8,7 +8,7 @@ import streamlit as st
 def render_devices():
     st.header("Devices")
     cols = st.columns(4)
-    for i in range(4):
+    for i in range(12):
         device_id = f"Device{i+1}"
 
         if f"device_{device_id}_state" not in st.session_state:
@@ -30,7 +30,7 @@ def render_devices():
 
 def display_news_score_and_suggestions(news_score, message, param_received_3, params_with_3_points,
                                        respiration_rate, SpO2_scale1, temperature, pulse, systolic_bp,
-                                       consciousness, on_oxygen):
+                                       consciousness, on_oxygen, update_frequency):
     # Determine color based on NEWS score
     if news_score == 0:
         color = "green"
@@ -41,52 +41,72 @@ def display_news_score_and_suggestions(news_score, message, param_received_3, pa
     else:  # 7 or more
         color = "red"
 
-    st.markdown(f"<h3 style='color: {color};'>{message}</h3>", unsafe_allow_html=True)
+    # Create two columns for NEWS Score and Clinical Suggestions
+    col1, col2 = st.columns(2)
 
-    last_reading_time = datetime(2024, 10, 12, 21, 41)  # 12 Oct 2024 21:41
-    current_time = datetime.now()
-    time_difference = current_time - last_reading_time
-    hours, remainder = divmod(time_difference.seconds, 3600)
-    minutes = remainder // 60
+    with col1:
+        st.markdown(f"<h3 style='color: {color};'>{message}</h3>", unsafe_allow_html=True)
 
-    st.markdown(f"**Last reading taken at:** {last_reading_time.strftime('%d %b %Y %H:%M')}")
-    st.markdown(f"**Time since last reading:** {hours} hours and {minutes} minutes")
+        # Update this section to use the current time
+        last_reading_time = datetime.now()
+        st.markdown(f"**Last reading taken at:** {last_reading_time.strftime('%d %b %Y %H:%M:%S')}")
+        st.markdown(f"**Updated every:** {update_frequency} seconds")
 
-    st.markdown("#### Clinical suggestion based on NEWS score")
-    if news_score == 0:
-        monitoring = "Minimum 12 hourly"
-        response = "Continue routine NEWS monitoring"
-    elif 1 <= news_score <= 4:
-        monitoring = "Minimum 4–6 hourly"
-        response = "• Inform registered nurse, who must assess the patient \n • Registered nurse decides whether increased frequency of monitoring and/or escalation of care is required"
-    elif news_score == 5 or news_score == 6:
-        monitoring = "Minimum 1 hourly"
-        response = "• Registered nurse to immediately inform the medical team caring for the patient \n • Registered nurse to request urgent assessment by a clinician or team with core competencies in the care of acutely ill patients \n • Provide clinical care in an environment with monitoring facilities"
-    else:  # 7 or more
-        monitoring = "Continuous monitoring of vital signs"
-        response = "• Registered nurse to immediately inform the medical team caring for the patient – this should be at least at specialist registrar level \n• Emergency assessment by a team with critical care competencies, including practitioner(s) with advanced airway management skills \n• Consider transfer of care to a level 2 or 3 clinical care facility, ie higher-dependency unit or ICU\n• Clinical care in an environment with monitoring facilities"
+    with col2:
+        st.markdown("#### Guideline suggestion")
+        
+        # Create an empty container
+        suggestion_container = st.empty()
+        
+        # Prepare the content
+        if news_score == 0:
+            monitoring = "Minimum 12 hourly"
+            response = "Continue routine NEWS monitoring"
+        elif 1 <= news_score <= 4:
+            monitoring = "Minimum 4–6 hourly"
+            response = "Inform registered nurse, who must assess the patient"
+        elif news_score == 5 or news_score == 6:
+            monitoring = "Minimum 1 hourly"
+            response = "Urgent assessment by a clinician"
+        else:  # 7 or more
+            monitoring = "Continuous monitoring of vital signs"
+            response = "Emergency registrar assessment, consider level 2/3"
 
-    st.markdown(f"**Frequency of monitoring:** {monitoring}")
-    st.markdown(f"**Clinical response:** {response}")
-
-    if param_received_3:
-        st.markdown("#### ⚠️ Critical Alert - parameters with a score of 3:")
-        for param in params_with_3_points:
-            st.markdown(f"- {param.replace('_', ' ').title()}")
-        st.markdown("**Clinical Response:** Registered nurse to inform medical team caring for the patient, who will review and decide whether escalation of care is necessary.")
-
+        # Update the container with the new content
+        suggestion_container.markdown(f"""
+        <div class="fixed-height-container">
+            <div class="min-height-content top-aligned-content">
+                <p><strong>Monitoring:</strong> {monitoring}</p>
+                <p>{response}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("#### Vitals readings")
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown(f"**Respiratory Rate:** {respiration_rate} breaths/min" + (" 🚨" if "respiration_rate" in params_with_3_points else ""))
-        st.markdown(f"**Oxygen Saturation:** {SpO2_scale1}%" + (" 🚨" if "SpO2" in params_with_3_points else ""))
-        st.markdown(f"**Systolic Blood Pressure:** {systolic_bp if systolic_bp is not None else 'Unknown'} {'mmHg' if systolic_bp is not None else ''}" + (" 🚨" if "systolic_bp" in params_with_3_points else ""))
+        st.markdown(f"##### Respiratory Rate: {respiration_rate} breaths/min" + (" 🚨" if "respiration_rate" in params_with_3_points else ""))
+        st.markdown(f"##### Oxygen Saturation: {SpO2_scale1}%" + (" 🚨" if "SpO2" in params_with_3_points else ""))
+        st.markdown(f"##### Systolic Blood Pressure: {systolic_bp if systolic_bp is not None else 'Unknown'} {'mmHg' if systolic_bp is not None else ''}" + (" 🚨" if "systolic_bp" in params_with_3_points else ""))
 
     with col2:
-        st.markdown(f"**Pulse:** {pulse} bpm" + (" 🚨" if "pulse" in params_with_3_points else ""))
-        st.markdown(f"**Temperature:** {temperature}°C" + (" 🚨" if "temperature" in params_with_3_points else ""))
-        st.markdown(f"**Consciousness Level:** {consciousness if consciousness is not None else 'Unknown'}" + (" 🚨" if "consciousness" in params_with_3_points else ""))
+        st.markdown(f"##### Pulse: {pulse} bpm" + (" 🚨" if "pulse" in params_with_3_points else ""))
+        st.markdown(f"##### Temperature: {temperature}°C" + (" 🚨" if "temperature" in params_with_3_points else ""))
+        st.markdown(f"##### Consciousness Level: {consciousness if consciousness is not None else 'Unknown'}" + (" 🚨" if "consciousness" in params_with_3_points else ""))
+    st.markdown(f"##### Supplemental Oxygen: {'Yes' if on_oxygen else 'No' if on_oxygen is not None else 'Unknown'}")
 
-    st.markdown(f"**Supplemental Oxygen:** {'Yes' if on_oxygen else 'No' if on_oxygen is not None else 'Unknown'}")
+    # Create the critical alert placeholder here
+    critical_alert_placeholder = st.empty()
+
+    if param_received_3:
+        critical_alert_content = "#### ⚠️ Critical Alert - parameters with a score of 3:\n\n"
+        for param in params_with_3_points:
+            critical_alert_content += f"- {param.replace('_', ' ').title()}\n"
+        critical_alert_content += "\n**Clinical Response:** Registered nurse immediately informs medical team to decide on escalation."
+        
+        # Update the placeholder with the critical alert content
+        critical_alert_placeholder.markdown(critical_alert_content)
+    else:
+        # Clear the placeholder if there's no critical alert
+        critical_alert_placeholder.empty()
